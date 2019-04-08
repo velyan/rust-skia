@@ -31,6 +31,50 @@ fn main() {
     .stderr(Stdio::inherit())
     .status().unwrap().success(), "`skia/tools/git-sync-deps` failed");
 
+  let target_str = env::var("TARGET").unwrap();
+
+  let (architecture, vendor, system, abi) = {
+    let target : Vec<&str> =
+        target_str
+            .split("-")
+            .collect();
+
+    if target.len() < 3 {
+      panic!("Failed to parse TARGET {}", target_str);
+    }
+
+    (target[0], target[1], target[2], if target.len() > 3 { Some(target[3]) } else { None })
+  };
+
+  match (architecture, vendor, system, abi) {
+    (_, "unknown", "linux", Some("gnu")) => {
+      cargo::add_link_libs(&["stdc++", "bz2", "GL", "fontconfig", "freetype"]);
+    },
+    (_, _, "apple", Some("darwin")) => {
+      cargo::add_link_libs(&["c++", "framework=OpenGL", "framework=ApplicationServices"]);
+    },
+    (_, _, "windows", abi) => {
+      cargo::add_link_libs(&["usp10", "ole32", "user32", "gdi32", "fontsub", "opengl32"]);
+      if abi == Some("gnu") {
+        cargo::add_link_lib("stdc++");
+      }
+    },
+    ("wasm32", _, _, _) => {
+    },
+    _ => {
+      panic!("unsupported target: {}", target_str)
+    }
+  };
+
+  let is_windows_target = system == "windows";
+
+  let cc_flag =
+      if is_windows_target {
+        Some("-std=c++14")
+      } else {
+        None
+      };
+
   let gn_args = {
 
     let keep_inline_functions = true;
@@ -43,9 +87,13 @@ fn main() {
       args.push_str(" skia_use_vulkan=true skia_enable_spirv_validation=false");
     }
 
-    if cfg!(windows) {
+    // Skia supports msvc compatible clang flags when we are on Windows _and_ the target is Windows, so that needs
+    // special treatment.
+    let skia_uses_msvc = cfg!(windows) && is_windows_target;
 
-      let mut flags : Vec<&str> = vec![];
+    let mut flags : Vec<&str> = vec![];
+
+    if skia_uses_msvc {
       flags.push(if cfg!(build="debug") { "/MTd" } else { "/MD" });
 
       if keep_inline_functions {
@@ -53,22 +101,29 @@ fn main() {
         flags.push("/Ob0")
       };
 
-      let flags : String = {
-        fn quote(s: &str) -> String { String::from("\"") + s + "\"" }
-
-        let v : Vec<String> =
-            flags.into_iter().map(quote).collect();
-        v.join(",")
-      };
-
-      args.push_str(r#" clang_win="C:\Program Files\LLVM""#);
-      args.push_str(&format!(" extra_cflags=[{}]", flags));
     } else {
       if keep_inline_functions {
-        args.push_str(r#" extra_cflags=["-fno-inline-functions"]"#)
+        flags.push("-fno-inline-functions");
       }
     }
 
+    if cfg!(windows) {
+      args.push_str(r#" clang_win="C:\Program Files\LLVM""#);
+    }
+
+    if architecture == "wasm32" {
+      args.push_str(r#" target_cpu="wasm""#);
+      flags.push("--target=wasm32");
+    }
+
+    let flags: String = {
+      fn quote(s: &str) -> String { String::from("\"") + s + "\"" }
+
+      let v: Vec<String> = flags.into_iter().map(quote).collect();
+      v.join(",")
+    };
+
+    args.push_str(&format!(" extra_cflags=[{}]", flags));
     args
   };
 
@@ -82,6 +137,9 @@ fn main() {
     PathBuf::from(env::var("OUT_DIR").unwrap())
       .join("skia/Static")
       .to_str().unwrap().into();
+
+  dbg!(&skia_out_dir);
+  dbg!(&gn_args);
 
   let output = Command::new(gn_command)
     .args(&["gen", &skia_out_dir, &gn_args])
@@ -117,24 +175,10 @@ fn main() {
   println!("cargo:rustc-link-search={}", &skia_out_dir);
   cargo::add_link_libs(&["static=skia", "static=skiabinding"]);
 
-  let target = env::var("TARGET").unwrap();
-  if target.contains("unknown-linux-gnu") {
-    cargo::add_link_libs(&["stdc++", "bz2", "GL", "fontconfig", "freetype"]);
-  } else if target.contains("eabi") {
-    cargo::add_link_libs(&["stdc++", "GLESv2"]);
-  } else if target.contains("apple-darwin") {
-    cargo::add_link_libs(&["c++", "framework=OpenGL", "framework=ApplicationServices"]);
-  } else if target.contains("windows") {
-    if target.contains("gnu") {
-      cargo::add_link_lib("stdc++");
-    }
-    cargo::add_link_libs(&["usp10", "ole32", "user32", "gdi32", "fontsub", "opengl32"]);
-  }
-
-  bindgen_gen(&current_dir_name, &skia_out_dir)
+  bindgen_gen(&current_dir_name, &skia_out_dir, cc_flag)
 }
 
-fn bindgen_gen(current_dir_name: &str, skia_out_dir: &str) {
+fn bindgen_gen(current_dir_name: &str, skia_out_dir: &str, cc_flag: Option<&str>) {
 
   let mut builder = bindgen::Builder::default()
     .generate_inline_functions(true)
@@ -216,7 +260,11 @@ fn bindgen_gen(current_dir_name: &str, skia_out_dir: &str) {
     .file(bindings_source)
     .out_dir(skia_out_dir);
 
-  let cc_build = if !cfg!(windows) { cc_build.flag("-std=c++14") } else { cc_build };
+  let cc_build =
+      match cc_flag {
+        Some(flag) => { cc_build.flag(flag) },
+        None => { cc_build }
+      };
 
   cc_build.compile("skiabinding");
 
