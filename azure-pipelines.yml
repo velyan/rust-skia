@@ -1,17 +1,90 @@
 jobs:
 
+# stable
+
 - template: azure-pipelines-template.yml
   parameters:
+    name: Linux
     platform: Linux
     image: ubuntu-16.04
+    toolchain: stable
+    features: ''
 
 - template: azure-pipelines-template.yml
   parameters:
+    name: macOS
     platform: macOS
     image: macOS-10.13
+    toolchain: stable
+    features: ''
 
 - template: azure-pipelines-template.yml
   parameters:
+    name: Windows
     platform: Windows
     image: vs2017-win2016
+    toolchain: stable
+    features: ''
 
+# beta
+
+- template: azure-pipelines-template.yml
+  parameters:
+    name: Linux_beta
+    platform: Linux
+    image: ubuntu-16.04
+    toolchain: beta
+    features: ''
+
+
+- template: azure-pipelines-template.yml
+  parameters:
+    name: macOS_beta
+    platform: macOS
+    image: macOS-10.13
+    toolchain: beta
+    features: ''
+
+- template: azure-pipelines-template.yml
+  parameters:
+    name: Windows_beta
+    platform: Windows
+    image: vs2017-win2016
+    toolchain: beta
+    features: ''
+
+# vulkan
+
+- template: azure-pipelines-template.yml
+  parameters:
+    name: Linux_vulkan
+    platform: Linux
+    image: ubuntu-16.04
+    toolchain: stable
+    features: 'vulkan'
+
+- template: azure-pipelines-template.yml
+  parameters:
+    name: macOS_vulkan
+    platform: macOS
+    image: macOS-10.13
+    toolchain: stable
+    features: 'vulkan'
+
+- template: azure-pipelines-template.yml
+  parameters:
+    name: Windows_vulkan
+    platform: Windows
+    image: vs2017-win2016
+    toolchain: stable
+    features: 'vulkan'
+
+# metal
+
+- template: azure-pipelines-template.yml
+  parameters:
+    name: macOS_metal
+    platform: macOS
+    image: macOS-10.13
+    toolchain: stable
+    features: 'metal'

@@ -1,19 +1,10 @@
 jobs:
-- job: ${{ parameters.platform }}
-  strategy:
-    matrix:
-      stable:
-        toolchain: stable
-        features: ''
-      beta:
-        toolchain: beta
-        features: ''
-      stable-vulkan:
-        toolchain: stable
-        features: 'vulkan'
+- job: ${{ parameters.name }}
   variables:
     platform: ${{ parameters.platform }}
     image: ${{ parameters.image }}
+    toolchain: ${{ parameters.toolchain }}
+    features: ${{ parameters.features }}
   pool:
     vmImage: $(image)
 

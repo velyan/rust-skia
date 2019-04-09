@@ -24,6 +24,8 @@ mod build {
 
     /// Build with Vulkan support?
     pub const VULKAN: bool = cfg!(feature = "vulkan");
+    /// Build with Metal support?
+    pub const METAL: bool = cfg!(feature = "metal");
 }
 
 fn main() {
@@ -49,12 +51,15 @@ fn main() {
                 .stderr(Stdio::inherit())
                 .status().unwrap().success(), "`skia/tools/git-sync-deps` failed");
 
+    let mut target_supports_metal : bool = false;
+
     match cargo::target().as_str() {
         (_, "unknown", "linux", Some("gnu")) => {
             cargo::add_link_libs(&["stdc++", "bz2", "GL", "fontconfig", "freetype"]);
         },
         (_, "apple", "darwin", _) => {
             cargo::add_link_libs(&["c++", "framework=OpenGL", "framework=ApplicationServices"]);
+            target_supports_metal = true;
         },
         (_, _, "windows", Some("msvc")) => {
             cargo::add_link_libs(&["usp10", "ole32", "user32", "gdi32", "fontsub", "opengl32"]);
@@ -63,6 +68,10 @@ fn main() {
             panic!("unsupported target: {:?}", cargo::target())
         }
     };
+
+    if build::METAL && !target_supports_metal {
+        panic!("unsupported target {:?} for Metal support", cargo::target());
+    }
 
     let gn_args = {
         fn yes() -> String { "true".into() }
@@ -95,6 +104,11 @@ fn main() {
         if build::VULKAN {
             args.push(("skia_use_vulkan", yes()));
             args.push(("skia_enable_spirv_validation", no()));
+        }
+
+        if build::METAL {
+            args.push(("skia_use_metal", yes()));
+            cargo::add_link_libs(&["framework=Metal", "framework=Foundation"]);
         }
 
         let mut flags: Vec<&str> = vec![];
@@ -258,6 +272,11 @@ fn bindgen_gen(current_dir_name: &str, skia_out_dir: &str) {
         builder = builder.clang_arg("-DSK_VULKAN");
         cc_build.define("SKIA_IMPLEMENTATION", "1");
         builder = builder.clang_arg("-DSKIA_IMPLEMENTATION=1");
+    }
+
+    if build::METAL {
+        cc_build.define("SK_METAL", "1");
+        builder = builder.clang_arg("-DSK_METAL");
     }
 
     if build::SKIA_RELEASE {
