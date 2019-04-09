@@ -3,5 +3,5 @@ jobs:
 - template: azure-pipelines-template.yml
   parameters:
     platform: Windows
-    image: vs2019-win2019
+    image: windows-2019
 
