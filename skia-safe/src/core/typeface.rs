@@ -31,17 +31,6 @@ pub enum TypefaceSerializeBehavior {
 impl NativeTransmutable<SkTypeface_SerializeBehavior> for TypefaceSerializeBehavior {}
 #[test] fn test_typeface_serialize_behavior_layout() { TypefaceSerializeBehavior::test_layout() }
 
-// not sure if we need to export that yet.
-/*
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-#[repr(i32)]
-pub enum TypefaceEncoding  {
-    UTF8 = SkTypeface_Encoding::kUTF8_Encoding as _,
-    UTF16 = SkTypeface_Encoding::kUTF16_Encoding as _,
-    UTF32 = SkTypeface_Encoding::kUTF32_Encoding as _
-}
-*/
-
 pub type Typeface = RCHandle<SkTypeface>;
 
 impl NativeRefCountedBase for SkTypeface {
@@ -109,9 +98,12 @@ impl RCHandle<SkTypeface> {
         }).unwrap()
     }
 
-    // chars_to_glyphs is unsupported, because the documentation does not make sense to me:
-    // The return value does not seem to actually count the required elements of the array.
-    // Use Font's text_to_glyphs 's function instead.
+    pub fn unichars_to_glyphs(&self, uni: &[Unichar], glyphs: &mut[GlyphId]) {
+        assert_eq!(uni.len(), glyphs.len());
+        unsafe {
+            self.native().unicharsToGlyphs(uni.as_ptr(), uni.len().try_into().unwrap(), glyphs.as_mut_ptr())
+        }
+    }
 
     pub fn unichar_to_glyph(&self, unichar: Unichar) -> GlyphId {
         unsafe { self.native().unicharToGlyph(unichar) }
