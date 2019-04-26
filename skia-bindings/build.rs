@@ -62,6 +62,7 @@ fn main() {
                 .status().unwrap().success(), "`skia/tools/git-sync-deps` failed");
 
     let mut force_build_libs = false;
+    let mut target_os = None;
 
     match cargo::target().as_str() {
         (_, "unknown", "linux", Some("gnu")) => {
@@ -78,6 +79,11 @@ fn main() {
         (_, _, "windows", Some("msvc")) => {
             cargo::add_link_libs(&["usp10", "ole32", "user32", "gdi32", "fontsub", "opengl32"]);
         },
+	("aarch64", "apple", "ios", _) => {
+            cargo::add_link_libs(&["c++", "framework=OpenGL", "framework=ApplicationServices"]);
+	    target_os = Some(String::from("ios"));
+		force_build_libs = true;
+	},
         _ => {
             panic!("unsupported target: {:?}", cargo::target())
         }
@@ -120,6 +126,10 @@ fn main() {
             args.push(("skia_use_vulkan", yes()));
             args.push(("skia_enable_spirv_validation", no()));
         }
+
+	if let Some(target_os) = target_os {
+		args.push(("target_os", quote(target_os.as_str())));
+	}
 
         let mut flags: Vec<&str> = vec![];
 
