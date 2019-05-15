@@ -26,7 +26,7 @@ mod build {
     pub const VULKAN: bool = cfg!(feature = "vulkan");
 
     /// Build with SVG support?
-    pub const SVG: bool = cfg!(feature = "svg");
+    pub const SVG: bool = true;//cfg!(feature = "svg");
 
     /// Build with animation support.
     pub const ANIMATION: bool = false;
@@ -231,6 +231,7 @@ fn bindgen_gen(current_dir: &Path, skia_out_dir: &str) {
         .whitelist_function("SkPreMultiplyARGB")
         .whitelist_function("SkPreMultiplyColor")
         .whitelist_function("SkBlendMode_Name")
+        // .whitelist_function("_C_SkSVGDOM_MakeFromStream")
 
         // functions for which the doc generation fails.
         .blacklist_function("SkColorFilter_asComponentTable")
@@ -243,6 +244,9 @@ fn bindgen_gen(current_dir: &Path, skia_out_dir: &str) {
         .whitelist_type("SkDocument")
         .whitelist_type("SkDrawLooper")
         .whitelist_type("SkDynamicMemoryWStream")
+        .whitelist_type("SkStream")
+        .whitelist_type("SkSVGDOM")
+        .whitelist_type("SkStreamAsset")
         .whitelist_type("SkPathMeasure")
         .whitelist_type("SkVector4")
         .whitelist_type("SkPictureRecorder")
@@ -293,6 +297,12 @@ fn bindgen_gen(current_dir: &Path, skia_out_dir: &str) {
         builder = builder.clang_arg(format!("-I{}", include_path.display()));
         cc_build.include(include_path);
     }
+
+    let dir = Path::new("skia/experimental/svg/model");
+    cargo::add_dependent_path(dir.to_str().unwrap());
+    let include_path = current_dir.join(dir);
+    builder = builder.clang_arg(format!("-I{}", include_path.display()));
+    cc_build.include(include_path);
 
     if build::VULKAN {
         cc_build.define("SK_VULKAN", "1");

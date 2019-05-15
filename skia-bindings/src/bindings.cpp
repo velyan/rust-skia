@@ -64,6 +64,9 @@
 #include "gl/GrGLInterface.h"
 // pathops/
 #include "SkPathOps.h"
+// experimental
+#include "SkSVGDOM.h"
+#include "SkSVGNode.h"
 
 #if defined(SK_VULKAN)
 #include "vk/GrVkVulkan.h"
@@ -1176,6 +1179,39 @@ extern "C" SkData* C_SkDynamicMemoryWStream_detachAsData(SkDynamicMemoryWStream*
 }
 
 //
+// SkStream
+//
+
+extern "C" SkStreamAsset* C_SkStream_MakeFromFile(const char path[]) {
+    return SkStream::MakeFromFile(path).release();
+}
+
+extern "C" void C_SkStream_destruct(SkStream* self) {
+    self->~SkStream();
+}
+
+extern "C" void C_SkStreamAsset_destruct(SkStreamAsset* self) {
+    self->~SkStreamAsset();
+}
+
+
+extern "C" size_t C_SkStreamAsset_getLength(SkStreamAsset* self) {
+    self->getLength();
+}
+
+//
+// SkMemoryStream
+//
+
+extern "C" void C_SkMemoryStream_destruct(SkMemoryStream* self) {
+    self->~SkMemoryStream();
+}
+
+extern "C" void C_SkMemoryStream_ConstructFromData(SkMemoryStream* uninitialized, const SkData* data) {
+    new(uninitialized) SkMemoryStream(spFromConst(data));
+}
+
+//
 // SkGradientShader
 //
 
@@ -1652,6 +1688,34 @@ extern "C" void C_SkOpBuilder_Construct(SkOpBuilder* uninitialized) {
 
 extern "C" void C_SkOpBuilder_destruct(SkOpBuilder* self) {
     self->~SkOpBuilder();
+}
+
+//
+// SkSVGDOM
+//
+
+extern "C" SkSVGDOM* C_SkSVGDOM_MakeFromStream(SkStream* stream) {
+    return SkSVGDOM::MakeFromStream(*stream).release();
+}
+
+extern "C" void C_SkSVGDOM_SetContainerSize(SkSVGDOM* dom, SkSize size) {
+    dom->setContainerSize(size);
+}
+
+extern "C" void C_SkSVGDOM_Render(const SkSVGDOM* dom, SkCanvas* canvas) {
+    dom->render(canvas);
+}
+
+extern "C" void C_SkSVGDOM_ref(const SkSVGDOM* self) {
+    self->ref();
+}
+
+extern "C" void C_SkSVGDOM_unref(const SkSVGDOM* self) {
+    self->unref();
+}
+
+extern "C" void C_SkSVGDOM_delete(SkSVGDOM* self) {
+    delete self;
 }
 
 #if defined(SK_VULKAN)

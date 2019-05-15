@@ -186,7 +186,10 @@ pub (crate) mod resources {
 
     pub fn color_wheel() -> Image {
         let bytes = include_bytes!("resources/color_wheel.png");
+        println!("size of bytes {}", bytes.len());
         let data = Data::new_copy(bytes);
+        println!("size of data {}", data.len());
+
         Image::from_encoded(&data, None).unwrap()
     }
 
