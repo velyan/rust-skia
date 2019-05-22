@@ -7,6 +7,7 @@ use skia_bindings::{
     SkSVGDOM,
     C_SkSVGDOM_MakeFromStream,
     C_SkSVGDOM_SetContainerSize,
+    C_SkSVGDOM_ContainerSize,
     C_SkSVGDOM_Render,
     C_SkSVGDOM_ref,
     C_SkSVGDOM_unref,
@@ -58,6 +59,14 @@ impl RCHandle<SkSVGDOM> {
                 self.native_mut(), *size.native())
         }
         self
+    }
+
+    pub fn container_size(&mut self) -> Size {
+        Size::from_native(
+         unsafe {
+            skia_bindings::C_SkSVGDOM_ContainerSize(
+                self.native_mut())
+        })
     }
 
     pub fn render(&mut self, canvas: &mut Canvas) -> &mut Self {

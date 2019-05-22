@@ -1702,6 +1702,10 @@ extern "C" void C_SkSVGDOM_SetContainerSize(SkSVGDOM* dom, SkSize size) {
     dom->setContainerSize(size);
 }
 
+extern "C" const SkSize C_SkSVGDOM_ContainerSize(SkSVGDOM* dom) {
+    return dom->containerSize();
+}
+
 extern "C" void C_SkSVGDOM_Render(const SkSVGDOM* dom, SkCanvas* canvas) {
     dom->render(canvas);
 }

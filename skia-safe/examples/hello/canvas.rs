@@ -18,7 +18,7 @@ impl Canvas {
         paint.set_color(Color::BLACK);
         paint.set_anti_alias(true);
         paint.set_stroke_width(1.0);
-        surface.canvas().clear(Color::WHITE);
+        // surface.canvas().clear(Color::WHITE);
         Canvas {
             surface,
             path,
