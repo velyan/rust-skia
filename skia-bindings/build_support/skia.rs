@@ -33,7 +33,7 @@ impl Default for BuildConfiguration {
             skia_release: true,
             keep_inline_functions: true,
             feature_vulkan: cfg!(feature = "vulkan"),
-            feature_svg: cfg!(feature = "svg"),
+            feature_svg: true,//cfg!(feature = "svg"),
             feature_animation: false,
             feature_dng: false,
             feature_particles: false,
@@ -450,11 +450,15 @@ fn bindgen_gen(build: &FinalBuildConfiguration, current_dir: &Path, output_direc
         cc_build.include(include_path);
     }
 
-     let dir = Path::new("skia/experimental/svg/model");
-    cargo::add_dependent_path(dir.to_str().unwrap());
-    let include_path = current_dir.join(dir);
-    builder = builder.clang_arg(format!("-I{}", include_path.display()));
-    cc_build.include(include_path);
+    {
+        // SkSVG
+        let dir = Path::new("skia/experimental/svg/model");
+        cargo::add_dependent_path(dir.to_str().unwrap());
+        let include_path = current_dir.join(dir);
+        builder = builder.clang_arg(format!("-I{}", include_path.display()));
+        cc_build.include(include_path);
+    }
+
 
     {
         // SkXMLWriter.h

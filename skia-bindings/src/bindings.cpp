@@ -76,6 +76,7 @@
 #include "SkTextUtils.h"
 // experimental
 #include "SkSVGDOM.h"
+#include "SkDOM.h"
 #include "SkSVGNode.h"
 
 #if defined(SK_VULKAN)

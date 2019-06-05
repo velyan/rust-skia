@@ -50,8 +50,8 @@ pub fn render() {
             file.read_to_end(&mut bytes).unwrap();
 
             println!("size of svg bytes {} for file {}", bytes.len(), &name_str);
-            let mut data = Data::new_copy(&bytes);
-            let mut stream = MemoryStream::from_data(&mut data);
+            // let mut data = Data::new_copy(&bytes);
+            let mut stream = MemoryStream::from_bytes(&bytes);
             let mut svg_dom = SVGDom::from_stream(&mut stream);
             let svg_size = svg_dom.container_size();
             let mut canvas = Canvas::new(1024, 1024);

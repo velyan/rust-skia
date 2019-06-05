@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 use crate::prelude::*;
 use crate::core::{Size, Canvas};
-use crate::interop::stream::MemoryStream;
+use crate::interop::stream::{ MemoryStream, NativeStreamBase };
 
 use skia_bindings::{
     SkSVGDOM,
@@ -27,31 +27,14 @@ impl NativeRefCountedBase for SkSVGDOM {
     }
 }
 
-// impl NativeRefCounted for SkSVGDOM {
-//    fn _ref(&self) {
-//         unsafe { C_SkSVGDOM_ref(self) }
-//     }
-
-//     fn _unref(&self) {
-//         unsafe { C_SkSVGDOM_unref(self) }
-//     }
-// }
-
 impl RCHandle<SkSVGDOM> {
 
    pub fn from_stream(stream: &mut MemoryStream) -> Self {
         Self::from_ptr(unsafe {
-            let native_stream = &mut stream.native_mut()._base._base._base._base._base;
+            let native_stream = stream.native_mut().as_stream_mut();
             skia_bindings::C_SkSVGDOM_MakeFromStream(native_stream)
         }).unwrap()
     }
-//    pub fn from_stream(stream: Box<SkStreamAsset>) -> Option<Self> {
-//         Self::from_ptr(unsafe {
-//             let ptr: *mut SkStreamAsset = Box::into_raw(stream);
-//             let c_stream = &mut (*ptr)._base._base._base;
-//             skia_bindings::C_SkSVGDOM_MakeFromStream(c_stream)
-//         })
-//     }
 
     pub fn set_container_size(&mut self, size: &Size) -> &mut Self {
         unsafe {
