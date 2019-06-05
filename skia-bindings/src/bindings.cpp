@@ -9,7 +9,9 @@
 #include "SkDrawLooper.h"
 #include "SkDocument.h"
 #include "SkFont.h"
+#include "SkFontArguments.h"
 #include "SkFontMetrics.h"
+#include "SkFontMgr.h"
 #include "SkImageFilter.h"
 #include "SkImageInfo.h"
 #include "SkMaskFilter.h"
@@ -64,6 +66,14 @@
 #include "gl/GrGLInterface.h"
 // pathops/
 #include "SkPathOps.h"
+// utils/
+#include "Sk3D.h"
+#include "SkCamera.h"
+#include "SkInterpolator.h"
+#include "SkNullCanvas.h"
+#include "SkParsePath.h"
+#include "SkShadowUtils.h"
+#include "SkTextUtils.h"
 // experimental
 #include "SkSVGDOM.h"
 #include "SkSVGNode.h"
@@ -820,8 +830,16 @@ extern "C" SkTextBlob* C_SkTextBlob_MakeFromText(const void* text, size_t byteLe
 }
 
 //
-// SkTypeface
+// core/SkTypeface.h
 //
+
+extern "C" bool C_SkTypeface_isBold(const SkTypeface* self) {
+    return self->isBold();
+}
+
+extern "C" bool C_SkTypeface_isItalic(const SkTypeface* self) {
+    return self->isItalic();
+}
 
 extern "C" SkTypeface* C_SkTypeface_MakeDefault() {
     return SkTypeface::MakeDefault().release();
@@ -831,16 +849,40 @@ extern "C" SkTypeface* C_SkTypeface_MakeFromName(const char familyName[], SkFont
     return SkTypeface::MakeFromName(familyName, fontStyle).release();
 }
 
+/*
 extern "C" SkTypeface* C_SkTypeface_MakeFromFile(const char path[], int index) {
     return SkTypeface::MakeFromFile(path, index).release();
 }
+*/
 
 extern "C" SkTypeface* C_SkTypeface_MakeFromData(const SkData* data, int index) {
     return SkTypeface::MakeFromData(sk_sp<SkData>(const_cast<SkData*>(data)), index).release();
 }
 
+extern "C" SkTypeface* C_SkTypeface_makeClone(const SkTypeface* self, const SkFontArguments* arguments) {
+    return self->makeClone(*arguments).release();
+}
+
 extern "C" SkData* C_SkTypeface_serialize(const SkTypeface* self, SkTypeface::SerializeBehavior behavior) {
     return self->serialize(behavior).release();
+}
+
+extern "C" SkTypeface* C_SkTypeface_MakeDeserialize(SkStream* stream) {
+    return SkTypeface::MakeDeserialize(stream).release();
+}
+
+extern "C" void C_SkTypeface_LocalizedStrings_unref(SkTypeface::LocalizedStrings* self) {
+    self->unref();
+}
+
+extern "C" bool C_SkTypeface_LocalizedStrings_next(SkTypeface::LocalizedStrings* self, SkString* string, SkString* language) {
+    auto ls = SkTypeface::LocalizedString();
+    if (self->next(&ls)) {
+        *string = ls.fString;
+        *language = ls.fLanguage;
+        return true;
+    }
+    return false;
 }
 
 //
@@ -877,6 +919,63 @@ extern "C" void C_SkFont_setTypeface(SkFont* self, const SkTypeface* tf) {
 
 extern "C" void C_SkFont_destruct(SkFont* self) {
     self->~SkFont();
+}
+
+//
+// SkFontArguments
+//
+
+extern "C" void C_SkFontArguments_construct(SkFontArguments* uninitialized) {
+    new(uninitialized) SkFontArguments();
+}
+
+extern "C" void C_SkFontArguments_destruct(SkFontArguments* self) {
+    self->~SkFontArguments();
+}
+
+extern "C" void C_SkFontArguments_setCollectionIndex(SkFontArguments* self, int collectionIndex) {
+    self->setCollectionIndex(collectionIndex);
+}
+
+extern "C" void C_SkFontArguments_setVariationDesignPosition(SkFontArguments* self, SkFontArguments::VariationPosition position) {
+    self->setVariationDesignPosition(position);
+}
+
+//
+// core/SkFontMgr.h
+//
+
+extern "C" int C_SkFontStyleSet_count(SkFontStyleSet* self) {
+    return self->count();
+}
+
+extern "C" void C_SkFontStyleSet_getStyle(SkFontStyleSet* self, int index, SkFontStyle* fontStyle, SkString* style) {
+    self->getStyle(index, fontStyle, style);
+}
+
+extern "C" SkTypeface* C_SkFontStyleSet_createTypeface(SkFontStyleSet* self, int index) {
+    return self->createTypeface(index);
+}
+
+extern "C" SkTypeface* C_SkFontStyleSet_matchStyle(SkFontStyleSet* self, const SkFontStyle* pattern) {
+    return self->matchStyle(*pattern);
+}
+
+// note: this function _consumes_ / deletes the stream.
+extern "C" SkTypeface* C_SkFontMgr_makeFromStream(const SkFontMgr* self, SkStreamAsset* stream, int ttcIndex) {
+    return self->makeFromStream(std::unique_ptr<SkStreamAsset>(stream), ttcIndex).release();
+}
+
+extern "C" SkFontMgr* C_SkFontMgr_RefDefault() {
+    return SkFontMgr::RefDefault().release();
+}
+
+//
+// core/SkFontParameters.h
+//
+
+extern "C" bool C_SkFontParameters_Variation_Axis_isHidden(const SkFontParameters::Variation::Axis* self) {
+    return self->isHidden();
 }
 
 //
@@ -1163,52 +1262,47 @@ extern "C" SkShader* C_SkShader_makeAsALocalMatrixShader(const SkShader* self, S
 }
 
 //
-// SkDynamicMemoryWStream
+// SkStream
+//
+
+extern "C" void C_SkStream_delete(SkStream* stream) {
+    delete stream;
+}
+
+//
+// SkWStream
+//
+
+extern "C" void C_SkWStream_destruct(SkWStream* self) {
+    self->~SkWStream();
+}
+
+extern "C" bool C_SkWStream_write(SkWStream* self, const void* buffer, size_t size) {
+    return self->write(buffer, size);
+}
+
+//
+// SkMemoryStream: public SkStreamMemory
+//
+
+extern "C" SkMemoryStream* C_SkMemoryStream_MakeDirect(const void* data, size_t length) {
+    return SkMemoryStream::MakeDirect(data, length).release();
+}
+
+//
+// SkDynamicMemoryWStream : public SkWStream
 //
 
 extern "C" void C_SkDynamicMemoryWStream_Construct(SkDynamicMemoryWStream* uninitialized) {
     new(uninitialized) SkDynamicMemoryWStream();
 }
 
-extern "C" void C_SkDynamicMemoryWStream_destruct(SkDynamicMemoryWStream* self) {
-    self->~SkDynamicMemoryWStream();
-}
-
 extern "C" SkData* C_SkDynamicMemoryWStream_detachAsData(SkDynamicMemoryWStream* self) {
     return self->detachAsData().release();
 }
 
-//
-// SkStream
-//
-
-extern "C" SkStreamAsset* C_SkStream_MakeFromFile(const char path[]) {
-    return SkStream::MakeFromFile(path).release();
-}
-
-extern "C" void C_SkStream_destruct(SkStream* self) {
-    self->~SkStream();
-}
-
-extern "C" void C_SkStreamAsset_destruct(SkStreamAsset* self) {
-    self->~SkStreamAsset();
-}
-
-
-extern "C" size_t C_SkStreamAsset_getLength(SkStreamAsset* self) {
-    self->getLength();
-}
-
-//
-// SkMemoryStream
-//
-
-extern "C" void C_SkMemoryStream_destruct(SkMemoryStream* self) {
-    self->~SkMemoryStream();
-}
-
-extern "C" void C_SkMemoryStream_ConstructFromData(SkMemoryStream* uninitialized, const SkData* data) {
-    new(uninitialized) SkMemoryStream(spFromConst(data));
+extern "C" SkStreamAsset* C_SkDynamicMemoryWStream_detachAsStream(SkDynamicMemoryWStream* self) {
+    return self->detachAsStream().release();
 }
 
 //
@@ -1688,6 +1782,38 @@ extern "C" void C_SkOpBuilder_Construct(SkOpBuilder* uninitialized) {
 
 extern "C" void C_SkOpBuilder_destruct(SkOpBuilder* self) {
     self->~SkOpBuilder();
+}
+
+//
+// utils
+//
+
+extern "C" Sk3DView* C_Sk3DView_new() {
+    return new Sk3DView();
+}
+
+extern "C" void C_Sk3DView_delete(Sk3DView* self) {
+    delete self;
+}
+
+extern "C" void C_SkInterpolator_destruct(SkInterpolator* self) {
+    self->~SkInterpolator();
+}
+
+extern "C" void C_SkInterpolator_setRepeatCount(SkInterpolator* self, SkScalar repeatCount) {
+    self->setRepeatCount(repeatCount);
+}
+
+extern "C" void C_SkInterpolator_setReset(SkInterpolator* self, bool reset) {
+    self->setReset(reset);
+}
+
+extern "C" void C_SkInterpolator_setMirror(SkInterpolator* self, bool mirror) {
+    self->setMirror(mirror);
+}
+
+extern "C" SkCanvas* C_SkMakeNullCanvas() {
+    return SkMakeNullCanvas().release();
 }
 
 //

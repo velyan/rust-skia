@@ -14,22 +14,38 @@ This project attempts to provide _up to date_ safe bindings that bridge idiomati
 
 Note that the information in this section is preliminary. Please open an issue for any build problem.
 
-This project requires LLVM, python, and git to build.
+### Prerequisites
 
-To test if LLVM is installed with the correct version, use `clang --version`. Currently, version 7.0.1 is required, or - on macOS X - Apple LLVM Version 10 should do, too.
+This project requires LLVM, Python 2, and git to build.
 
-For python, at least version 2.7 should be available. Use `python --version` to see what's there.
+To see which version of LLVM/Clang is available, use `clang --version`. 
 
-### macOS X
+We recommend version 8, but also had successes to build Skia with 6.0.1 and 7.0.1, and - on macOS - Apple LLVM version 10. So it's probably best to use the preinstalled version or install version 8 if LLVM is not available on your platform by default.
 
-- Install the XCode command line tools with `xcode-select --install`.
-- **macOS X 10.14 (Mojave)**: install the SDK headers: `/Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg`, otherwise the binding generation will fail with `'TargetConditionals.h' file not found`.
-- Alternatively, install LLVM 7.0.1 via `brew install llvm@7` and then set `PATH`, `CPPFLAGS`, and `LDFLAGS` like instructed.
+For Python, at least version 2.7 _should_ be available! Use `python --version` to see what's there.
+
+### macOS
+
+- Install the XCode command line developer tools with
+
+  ```bash
+  xcode-select --install
+  ```
+
+- **macOS Mojave Version 10.14**: install the SDK headers:
+
+  ```bash
+  sudo open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg
+  ```
+
+  otherwise the Skia build _may_ fail to build `SkJpegUtility.cpp` and the binding generation _will_ fail with  `'TargetConditionals.h' file not found` . Also note that the command line developer tools _and_ SDK headers _should_ be reinstalled after an update of XCode.
+
+- As an alternative to Apple LLVM 10, install LLVM via `brew install llvm` or `brew install llvm@7` and then set `PATH`, `CPPFLAGS`, and `LDFLAGS` like instructed.
 
 ### Windows
 
 - Be sure the `git` command line tool is installed.
-- Install the [official LLVM 7.0.1](http://releases.llvm.org/download.html) distribution.
+- Install the [official LLVM 8](http://releases.llvm.org/download.html) distribution.
 - msys:
   - Install one of the Python2 packages, for example `mingw-w64-x86_64-python2`.
   - LLVM is _always_ picked up from `C:/Program Files/LLVM`, so be sure it's available from there.
@@ -38,7 +54,7 @@ For python, at least version 2.7 should be available. Use `python --version` to 
 
 ### Linux
 
-- LLVM should be installed out of the box, if not, install version 7.0.1.
+- LLVM should be installed out of the box, if not, install version 8.
 
 Then use:
 
@@ -48,7 +64,11 @@ Under Linux, OpenGL libraries _may_ be missing, if that is the case, install Ope
 
 Please share your build experience so that we can try to automate the build and get to the point where `cargo build` _is_ sufficient to build the bindings _including_ Skia, and if that is not possible, clearly prompts to what's missing.
 
-To simplify and speed up the build, we also plan to provide prebuilt binaries for some of the major platforms ([#49](https://github.com/rust-skia/rust-skia/issues/49)).
+### Skia
+
+For situations in which Skia does not build or needs to be configured differently, we support some customization support in `skia-bindings/build.rs`. For more details about how to customize Skia builds, take a look at the [README of the skia-bindings package](skia-bindings/README.md).
+
+Note that official crate packages _will_ try to download prebuilt binaries from [skia-binaries](<https://github.com/rust-skia/skia-binaries/releases>) if the platform matches with one of our images we test our builds with. If the download fails, a full build of Skia is triggered.
 
 ### Feature `vulkan`
 
@@ -74,7 +94,7 @@ And `cargo run --example skia-org -- --help` shows the drivers that are currentl
 
 ### Crate
 
-An official crate is not yet available. We've created [a Milestone](https://github.com/rust-skia/rust-skia/milestone/1) on Github's issue tracker to track the progress.
+An official crate is not yet available on [crates.io](<https://crates.io/>) but every update to the master branch releases new crates to the [releases tab](<https://github.com/rust-skia/rust-skia/releases>) and there is also a [a Milestone](https://github.com/rust-skia/rust-skia/milestone/1) to track the progress.
 
 ### Platforms
 

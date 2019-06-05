@@ -5,4 +5,4 @@ pub mod stream;
 pub use self::stream::*;
 
 mod string;
-// pub(crate) use self::string::*;
+pub(crate) use self::string::*;

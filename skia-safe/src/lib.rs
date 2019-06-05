@@ -8,6 +8,8 @@ pub mod gpu;
 pub mod experimental;
 #[cfg(feature = "svg")]
 pub mod svg;
+// TODO: We don't export utils/* into the crate's root yet. Should we?
+pub mod utils;
 
 #[macro_use]
 extern crate bitflags;
@@ -24,6 +26,7 @@ pub use crate::effects::*;
 pub use crate::pathops::*;
 pub use crate::interop::*;
 pub use crate::experimental::*;
+pub use crate::font_parameters;
 
 #[cfg(test)]
 mod transmutation_tests {

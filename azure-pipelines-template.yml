@@ -19,6 +19,8 @@ jobs:
   variables:
     platform: ${{ parameters.platform }}
     image: ${{ parameters.image }}
+    rust_backtrace: 1
+    release_branch: 'master'
   pool:
     vmImage: $(image)
 
@@ -33,8 +35,7 @@ jobs:
     # macOS
     - script: |
         sudo installer -pkg /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg -target /
-        brew update && brew install llvm@7
-      displayName: Install SDK Headers & LLVM
+      displayName: Install SDK Headers
 
   - ${{ if ne(parameters.platform, 'Windows') }}:
     # Linux and macOS.
@@ -50,17 +51,35 @@ jobs:
         rustup-init.exe -y --default-toolchain %TOOLCHAIN%
         set PATH=%PATH%;%USERPROFILE%\.cargo\bin
         echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
-        choco install llvm --version 7.0.1
-      displayName: Install Rust on Windows
+        choco install llvm --version 8.0.0
+      displayName: Install Rust and LLVM on Windows
 
   # All platforms.
   - script: |
         rustc -Vv
         cargo -V
-    displayName: Print versions
+    displayName: Rust & Cargo Versions
+
+  - ${{ if ne(parameters.platform, 'Windows') }}:
+    # Linux and macOS.
+    - script: |
+        clang --version
+      displayName: LLVM/Clang Version
+
+  - ${{ if eq(parameters.platform, 'Windows') }}:
+    # Windows.
+    - script: |
+        "C:/Program Files/LLVM/bin/clang.exe" --version
+      displayName: LLVM/Clang Version
 
   # Note: features are ignored when set in the workspace. This is a known bug in cargo (#5015), so cd into skia-safe instead.
-  - script: cd skia-safe && cargo build --release --features "$(features)" --all-targets -vv
+  - bash: |
+      set -e
+      cd skia-safe && cargo build --release --features "$(features)" --all-targets -vv
+      export SKIA_BINARIES_TAG=$(cat "$(Build.ArtifactStagingDirectory)/skia-binaries/tag.txt")
+      export SKIA_BINARIES_KEY=$(cat "$(Build.ArtifactStagingDirectory)/skia-binaries/key.txt")
+      echo "##vso[task.setvariable variable=SKIA_BINARIES_TAG;]${SKIA_BINARIES_TAG}"
+      echo "##vso[task.setvariable variable=SKIA_BINARIES_KEY;]${SKIA_BINARIES_KEY}"
     displayName: Build all targets in skia-safe
 
   - script: cd skia-safe && cargo test --release --features "$(features)" -vv
@@ -68,10 +87,34 @@ jobs:
 
   - script: cd skia-safe && cargo run --release --features "$(features)" --example skia-org "$(Build.ArtifactStagingDirectory)/skia-org" $(exampleArgs)
     displayName: Generate skia-org Example Images
-    condition: ne(variables['exampleArgs'], '')
+    condition: and(succeeded(), ne(variables['exampleArgs'], ''))
 
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: '$(Build.ArtifactStagingDirectory)/skia-org'
       artifactName: 'skia-org-examples-$(platform)-$(toolchain)'
-    condition: ne(variables['exampleArgs'], '')
+    condition: and(succeeded(), ne(variables['exampleArgs'], ''))
+
+  - task: ArchiveFiles@2
+    condition: and(succeeded(), eq(variables['toolchain'], 'stable'), eq(variables['Build.SourceBranchName'], variables['release_branch']))
+    displayName: 'Archive binaries'
+    inputs:
+      rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/skia-binaries'
+      archiveType: 'tar'
+      tarCompression: 'gz'
+      archiveFile: '$(Build.ArtifactStagingDirectory)/skia-binaries-$(SKIA_BINARIES_KEY).tar.gz'
+
+  - task: GithubRelease@0
+    condition: and(succeeded(), eq(variables['toolchain'], 'stable'), eq(variables['Build.SourceBranchName'], variables['release_branch']))
+    displayName: 'Release to GitHub rust-skia/skia-binaries'
+    inputs:
+      action: 'edit'
+      gitHubConnection: 'rust-skia-github-connection'
+      repositoryName: 'rust-skia/skia-binaries'
+      tagSource: 'manual'
+      target: 'master'
+      tag: '$(SKIA_BINARIES_TAG)'
+      assets: '$(Build.ArtifactStagingDirectory)/skia-binaries-$(SKIA_BINARIES_KEY).tar.gz'
+      assetUploadMode: 'replace'
+      isPreRelease: true
+      addChangeLog: false

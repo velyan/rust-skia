@@ -131,7 +131,6 @@ pub fn canvas_clip_options_defaults() {
 /// The canvas type that is returned when it is managed by another instance,
 /// like Surface, for example. For these cases, the Canvas' reference that is
 /// returned is bound to the lifetime of the owner.
-
 #[repr(transparent)]
 pub struct Canvas(SkCanvas);
 
@@ -174,6 +173,21 @@ impl<'lt> Default for OwnedCanvas<'lt> {
     fn default() -> Self {
         let ptr = unsafe { C_SkCanvas_newEmpty() };
         Canvas::own_from_native_ptr(ptr).unwrap()
+    }
+}
+
+// We implement AsMut for Canvas & OwnedCanvas
+// to simplify a number of API calls.
+// TODO: Should we support AsRef, too?
+impl AsMut<Canvas> for Canvas {
+    fn as_mut(&mut self) -> &mut Canvas {
+        self
+    }
+}
+
+impl<'lt> AsMut<Canvas> for OwnedCanvas<'lt> {
+    fn as_mut(&mut self) -> &mut Canvas {
+        self.deref_mut()
     }
 }
 
@@ -731,9 +745,9 @@ impl Canvas {
 
     // rust specific, based on drawSimpleText with fixed UTF8 encoding,
     // implementation is similar to Font's *_str methods.
-    pub fn draw_str<P: Into<Point>>(&mut self, str: &str, origin: P, font: &Font, paint: &Paint) -> &mut Self {
+    pub fn draw_str(&mut self, str: impl AsRef<str>, origin: impl Into<Point>, font: &Font, paint: &Paint) -> &mut Self {
         let origin = origin.into();
-        let bytes = str.as_bytes();
+        let bytes = str.as_ref().as_bytes();
         unsafe {
             self.native_mut().drawSimpleText(
                 bytes.as_ptr() as _, bytes.len(), TextEncoding::UTF8.into_native(),
@@ -921,6 +935,8 @@ pub enum AutoCanvasRestore {}
 
 impl AutoCanvasRestore {
 
+    // TODO: Can't use AsMut here for the canvas, because it would break
+    //       the lifetime dependency.
     pub fn guard(canvas: &mut Canvas, do_save: bool) -> AutoRestoredCanvas {
         let restore = unsafe {
             // does not link on Linux
