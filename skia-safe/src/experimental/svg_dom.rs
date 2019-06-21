@@ -44,20 +44,18 @@ impl RCHandle<SkSVGDOM> {
         self
     }
 
-    pub fn container_size(&mut self) -> Size {
+    pub fn container_size(&self) -> Size {
         Size::from_native(
          unsafe {
-            skia_bindings::C_SkSVGDOM_ContainerSize(
-                self.native_mut())
+            skia_bindings::C_SkSVGDOM_ContainerSize(self.native())
         })
     }
 
-    pub fn render(&mut self, canvas: &mut Canvas) -> &mut Self {
+    pub fn render(&self, canvas: &mut Canvas) {
         unsafe {
             skia_bindings::C_SkSVGDOM_Render(
-                self.native(), canvas.native_mut())
+                self.native(), canvas.native_mut());
         }
-        self
     }
 
 }

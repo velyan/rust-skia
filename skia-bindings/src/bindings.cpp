@@ -1829,7 +1829,7 @@ extern "C" void C_SkSVGDOM_SetContainerSize(SkSVGDOM* dom, SkSize size) {
     dom->setContainerSize(size);
 }
 
-extern "C" const SkSize C_SkSVGDOM_ContainerSize(SkSVGDOM* dom) {
+extern "C" const SkSize C_SkSVGDOM_ContainerSize(const SkSVGDOM* dom) {
     return dom->containerSize();
 }
 
