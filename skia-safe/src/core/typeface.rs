@@ -158,10 +158,13 @@ impl RCHandle<SkTypeface> {
     // from_file is unsupported, because it is unclear what the
     // encoding of the path name is. from_data can be used instead.
 
-    pub fn from_data(data: &Data, index: usize) {
+    pub fn from_data(data: &Data, index: impl Into<Option<usize>>) -> Option<Typeface> {
         Typeface::from_ptr(unsafe {
-            C_SkTypeface_MakeFromData(data.shared_native(), index.try_into().unwrap())
-        });
+            C_SkTypeface_MakeFromData(
+                data.shared_native(),
+                index.into().unwrap_or_default().try_into().unwrap(),
+            )
+        })
     }
 
     pub fn clone_with_arguments(&self, arguments: &FontArguments) -> Option<Typeface> {
