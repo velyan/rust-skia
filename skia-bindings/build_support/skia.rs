@@ -489,7 +489,7 @@ impl BinariesConfiguration {
 
 /// The full build of Skia, SkiaBindings, and the generation of bindings.rs.
 pub fn build(build: &FinalBuildConfiguration, config: &BinariesConfiguration) {
-    prerequisites::resolve_dependencies();
+    // prerequisites::resolve_dependencies();
 
     // call Skia's git-sync-deps
 
