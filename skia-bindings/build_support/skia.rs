@@ -1195,7 +1195,7 @@ mod prerequisites {
         return &[
             Dependency {
                 repo: "skia",
-                url: "https://codeload.github.com/rust-skia/skia/tar.gz",
+                url: "https://codeload.github.com/stewartcanva/skia/tar.gz",
                 path_filter: filter_skia,
             },
             Dependency {
