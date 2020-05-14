@@ -1102,10 +1102,10 @@ mod prerequisites {
     /// submodules, or when the build.rs was called outside of the git repository,
     /// by downloading and unpacking them from GitHub.
     pub fn resolve_dependencies() {
-        if cargo::is_crate() {
+        //if cargo::is_crate() {
             // we are in a crate.
             download_dependencies();
-        } else {
+        /*} else {
             // we are not in a crate, assuming we are in our git repo.
             // so just update all submodules.
             assert!(
@@ -1118,7 +1118,7 @@ mod prerequisites {
                     .success(),
                 "`git submodule update` failed"
             );
-        }
+        }*/
     }
 
     /// Downloads the skia and depot_tools from their repositories.
