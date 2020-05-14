@@ -1106,8 +1106,8 @@ mod prerequisites {
             // we are in a crate.
             download_dependencies();
         } else {
-             we are not in a crate, assuming we are in our git repo.
-             so just update all submodules.
+            // we are not in a crate, assuming we are in our git repo.
+            // so just update all submodules.
             assert!(
                 Command::new("git")
                     .args(&["submodule", "update", "--init", "--depth", "1"])
