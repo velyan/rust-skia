@@ -1127,6 +1127,7 @@ mod prerequisites {
     ///
     /// The hashes are taken from the Cargo.toml section [package.metadata].
     fn download_dependencies() {
+        println!("trying to download deps");
         let metadata = cargo::get_metadata();
 
         for dep in dependencies() {
