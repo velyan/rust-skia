@@ -378,6 +378,7 @@ impl BinariesConfiguration {
                 }
             }
             (_, "apple", "darwin", _) => {
+                // TODO: check if we can link against freetype here
                 link_libraries.extend(vec!["c++", "framework=ApplicationServices"]);
                 if features.gl {
                     link_libraries.push("framework=OpenGL");
@@ -634,6 +635,7 @@ fn bindgen_gen(build: &FinalBuildConfiguration, current_dir: &Path, output_direc
 
         for ninja_file in &build.ninja_files {
             let ninja_file = output_directory.join(ninja_file);
+            println!("Trying ninja file {}", ninja_file.to_str().unwrap());
             let contents = fs::read_to_string(ninja_file).unwrap();
             definitions = definitions::combine(definitions, definitions::from_ninja(contents))
         }
@@ -1143,6 +1145,8 @@ mod prerequisites {
                 .iter()
                 .find(|(n, _)| n == repo_name)
                 .expect("metadata entry not found");
+
+            println!("SHORT HASH IS : {}", short_hash);
 
             // remove unpacking directory, github will format it to repo_name-hash
             let unpack_dir = &PathBuf::from(format!("{}-{}", repo_name, short_hash));
